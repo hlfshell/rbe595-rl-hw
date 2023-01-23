@@ -12,7 +12,7 @@
 
 \title{RBE595 - Week 2 Programming Assignment}
 \author{Keith Chester}
-\date{Due date: January 14, 2023}
+\date{Due date: January 22, 2023}
 
 \begin{document}
 \maketitle
@@ -57,7 +57,8 @@ def perform_run(
     best_bandit = bandits.index(max(bandits))
     # We assume some knowledge about the bandits. Over time we will learn
     # more as we explore.
-    knowledge = [gauss(mean, sqrt(variance)) for i in range(0, k_bandits)]
+    # knowledge = [gauss(mean, sqrt(variance)) for i in range(0, k_bandits)]
+    knowledge = [1.0] * k_bandits
 
     for i in range(0, steps):
         if uniform(0, 1) <= 1 - epsilon:
@@ -87,9 +88,9 @@ def run_experiment(runs: int, steps_per_run: int, epsilon: float, k_bandits: int
         # We are iterativeley calculating the all_rewards
         # and all_optimal averages so we can avoid holding
         # it all in memory
-        for index, _ in enumerate(all_rewards):
-            all_rewards[index] += rewards[index] / runs
-            all_optimal[index] += optimal[index] / runs
+        for step, _ in enumerate(all_rewards):
+            all_rewards[step] += rewards[step] / runs
+            all_optimal[step] += optimal[step] / runs
 
     return all_rewards, all_optimal
 
@@ -104,21 +105,22 @@ if __name__ == "__main__":
 
     figure, axis = plt.subplots(2, sharex=True)
     plt.xlabel("Steps")
-    figure.suptitle("ε Greedy k-Bandits")
+    figure.suptitle("E Greedy k-Bandits")
 
     axis[0].set_title("Average reward")
-    axis[0].plot(rewards_00, label="ε=0")
-    axis[0].plot(rewards_01, label="ε=.01")
-    axis[0].plot(rewards_10, label="ε=.1")
+    axis[0].plot(rewards_00, label="E=0")
+    axis[0].plot(rewards_01, label="E=.01")
+    axis[0].plot(rewards_10, label="E=.1")
     axis[0].legend(loc="lower center")
 
     axis[1].set_title("% Optimal Action")
-    axis[1].plot(optimal_00, label="ε=0")
-    axis[1].plot(optimal_01, label="ε=0.01")
-    axis[1].plot(optimal_10, label="ε=0.1")
+    axis[1].plot(optimal_00, label="E=0")
+    axis[1].plot(optimal_01, label="E=0.01")
+    axis[1].plot(optimal_10, label="E=0.1")
     axis[1].legend(loc="lower center")
 
     figure.savefig("./epsilon_greedy.png")
+
 
 \end{python}
 

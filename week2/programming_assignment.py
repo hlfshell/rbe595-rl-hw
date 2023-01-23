@@ -25,7 +25,8 @@ def perform_run(
     best_bandit = bandits.index(max(bandits))
     # We assume some knowledge about the bandits. Over time we will learn
     # more as we explore.
-    knowledge = [gauss(mean, sqrt(variance)) for i in range(0, k_bandits)]
+    # knowledge = [gauss(mean, sqrt(variance)) for i in range(0, k_bandits)]
+    knowledge = [1.0] * k_bandits
 
     for i in range(0, steps):
         if uniform(0, 1) <= 1 - epsilon:
@@ -55,9 +56,9 @@ def run_experiment(runs: int, steps_per_run: int, epsilon: float, k_bandits: int
         # We are iterativeley calculating the all_rewards
         # and all_optimal averages so we can avoid holding
         # it all in memory
-        for index, _ in enumerate(all_rewards):
-            all_rewards[index] += rewards[index] / runs
-            all_optimal[index] += optimal[index] / runs
+        for step, _ in enumerate(all_rewards):
+            all_rewards[step] += rewards[step] / runs
+            all_optimal[step] += optimal[step] / runs
 
     return all_rewards, all_optimal
 
