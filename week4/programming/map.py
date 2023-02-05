@@ -26,6 +26,10 @@ GOAL = 100.0
 OBSTACLE_PENALTY = -50.0
 MOVEMENT_PENALTY = -1.0
 
+DETERMINISTIC = "deterministic"
+STOCHASTIC = "stochastic"
+METHODS = [DETERMINISTIC, STOCHASTIC]
+
 
 class Map:
     def __init__(self, goal: Tuple[int, int] = (10, 7), robot=(40, 7)):
@@ -104,28 +108,6 @@ class Map:
             raise Exception("Illegal move")
         else:
             self.set_robot(xy)
-
-    # def get_actions(self, xy: Tuple[int, int]) -> List[Direction]:
-    #     """
-    #     get_actions takes a given xy coordinate, then returns the
-    #     possible open actions available in the order relative to
-    #     xy clockwise:
-    #     812
-    #     7#3
-    #     654
-    #     """
-    #     actions = []
-    #     for direction in directions:
-    #         new_xy = tuple(np.add(np.array(xy), np.array(direction)))
-    #         # If it goes off the edge, ignore the action
-    #         if new_xy[0] < 0 or new_xy[0] >= len(self.map[0]):
-    #             continue
-    #         elif new_xy[1] < 0 or new_xy[1] >= len(self.map):
-    #             continue
-
-    #         actions.append(direction)
-
-    #     return actions
 
     def is_obstacle(self, xy: Tuple[int, int]) -> bool:
         if self.is_out_of_bounds(xy):
@@ -232,10 +214,28 @@ class Map:
 
         return probabilities
 
-    def generate_move_probabilities(self, xy: Tuple[int, int]) -> List[float]:
+    def generate_move_probabilities(
+        self, xy: Tuple[int, int], method: str
+    ) -> List[float]:
         """
-        TODO - write me
+        generate_move_probabilities will accept a given xy coordinate and, with the given
+            reward structure and calculated value map, deccide what the probability of
+            moving to any given neighbor is. The function switches the behaviour from
+            deterministic (simply the max score, split evnly if tied) and stochastic
+            (the same as before, but with a 20% chance at veering 45 degrees to the left
+            or right).
+
+            Note that out of bounds neighbors are given a maximum negative penalty, as we
+            need to ensure that we eliminate it as a possibility.
+
+            The two methods are either DETERMINISTIC or STOCHASTIC
+
+            :returns List[float] - a list of floats in clockwise directional order of the
+                probability the agent would want to move to the given neighbor
         """
+        if method not in METHODS:
+            raise Exception(f"Invalid method chosen - must be one of: {METHODS}")
+
         # Generate our neighbors
         neighbors = self.get_neighbors(xy)
 
@@ -254,12 +254,34 @@ class Map:
 
         # Now that we have the rewards for each possible neighbor, we will figure
         # out the probability of choosing each.
-        # To do this, first we find our highest score. This is possibly *all* of
-        # them if all optons are equal.
-        highest = [1 if value == max(values) else 0 for value in values]
-        # Probabilities is a map, where the default value is a set [0] the length
-        # of our neighbor count
-        probabilities = [1 / highest.count(1) * x for x in highest]
+        if method == DETERMINISTIC:
+            # To do this, first we find our highest score. This is possibly *all* of
+            # them if all optons are equal.
+            highest = [1 if value == max(values) else 0 for value in values]
+            # Probabilities is a map, where the default value is a set [0] the length
+            # of our neighbor count
+            probabilities = [1 / highest.count(1) * x for x in highest]
+        else:
+            # Here we want to find the max (and all equivalent), and then
+            # include a 20% chance at taking a 45 degree turn. Take note that
+            # this means that there can be overlap between possible outcomes.
+            highest = [1 if value == max(values) else 0 for value in values]
+            # Next we define all the turn-off indexes
+            turns = [0] * len(highest)
+            for index, high in enumerate(highest):
+                if not high:
+                    continue
+                left = index - 1
+                if left < 0:
+                    left = len(neighbors) - 1
+                right = index + 1
+                if right >= len(neighbors):
+                    right = 0
+                turns[left] += 1
+                turns[right] += 1
+            # Note that there can be multiple turns now.
+            totals = np.add([x * 0.8 for x in highest], [x * 0.1 for x in turns])
+            probabilities = [x / sum(totals) for x in totals]
 
         return probabilities
 
@@ -316,7 +338,7 @@ class Map:
                     # See if our delta is the largest delta for this iteration
                     delta = max(delta, abs(old_value - value))
 
-    def policy_iteration(self, gamma=0.95, theta=1e-3):
+    def policy_iteration(self, method: str, gamma=0.95, theta=1e-3):
         # Now we update the polciy versus the value map we've calculated
         policy_stable = False
         iteration = 0
@@ -346,7 +368,7 @@ class Map:
                     xy = (x, y)
 
                     old_policy = self.policy_map[xy]
-                    self.policy_map[xy] = self.generate_move_probabilities(xy)
+                    self.policy_map[xy] = self.generate_move_probabilities(xy, method)
                     policy_stable = policy_stable and old_policy == self.policy_map[xy]
                     if old_policy != self.policy_map[xy]:
                         changed += 1
@@ -355,5 +377,5 @@ class Map:
 
 
 x = Map()
-x.policy_iteration()
+x.policy_iteration(STOCHASTIC)
 x.print_value_map()
