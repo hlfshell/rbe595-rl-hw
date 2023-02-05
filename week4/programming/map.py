@@ -100,6 +100,31 @@ class Map:
 
         return img
 
+    def draw_policy_map(self, pixels_per=25):
+        img = self.draw(pixels_per=pixels_per)
+
+        dirs = ["U", "UR", "R", "DR", "D", "DL", "L", "UL"]
+        arrows = []
+        for dir in dirs:
+            arrows.append(Image.open(f"./arrows/{dir}.png"))
+
+        for y, row in enumerate(self.map):
+            for x, cell in enumerate(row):
+                xy = (x, y)
+                if xy == self.goal:
+                    continue
+                elif cell == OBSTACLE:
+                    continue
+
+                # Define the direction we go from here by finding the max
+                # of the policy currently assigned
+                arrow = arrows[self.policy_map[xy].index(max(self.policy_map[xy]))]
+                upper_left = (x * pixels_per, y * pixels_per)
+                # bottom_right = (upper_left[0] + pixels_per, upper_left[1] + pixels_per)
+                img.paste(arrow, upper_left)
+
+        return img
+
     def draw_value_map(self, pixels_per=25):
         img = self.draw(pixels_per=pixels_per)
         draw = ImageDraw.Draw(img)
@@ -371,7 +396,9 @@ if __name__ == "__main__":
     print("Policy iteration for determinstic policy:")
     map.policy_iteration(DETERMINISTIC)
     map.draw_value_map().save("./imgs/policy_iteration_value_map_deterministic.png")
+    map.draw_policy_map().save("./imgs/polciy_iteration_policy_map_deterministic.png")
 
     print("Policy iteration for stochastic policy:")
     map.policy_iteration(STOCHASTIC)
     map.draw_value_map().save("./imgs/policy_iteration_value_map_stochastic.png")
+    map.draw_policy_map().save("./imgs/polciy_iteration_policy_map_stochastic.png")
