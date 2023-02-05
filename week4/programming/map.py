@@ -54,6 +54,13 @@ class Map:
                         continue
                     self.map[index].append(int(char))
 
+    def reset(self):
+        """
+        reset sets our value and policy maps back to 0
+        """
+        self.value_map = defaultdict(lambda: 0.0)
+        self.policy_map = defaultdict(lambda: [0.125] * 8)
+
     def get(self, xy: Tuple[int, int]) -> int:
         return self.map[xy[1]][xy[0]]
 
@@ -234,7 +241,8 @@ class Map:
         """
         generate_move_probabilities will accept a given xy coordinate and, with the given
             reward structure and calculated value map, deccide what the probability of
-            moving to any given neighbor is. The function switches the behaviour from
+            moving to any if method not in METHODS:
+            raise Exception(f"Invalid method chosen - must be one of: {METHODS}")given neighbor is. The function switches the behaviour from
             deterministic (simply the max score, split evnly if tied) and stochastic
             (the same as before, but with a 20% chance at veering 45 degrees to the left
             or right).
@@ -353,7 +361,11 @@ class Map:
                     delta = max(delta, abs(old_value - value))
 
     def policy_iteration(self, method: str, gamma=0.95, theta=1e-3):
-        # Now we update the polciy versus the value map we've calculated
+        if method not in METHODS:
+            raise Exception(f"Invalid method chosen - must be one of: {METHODS}")
+
+        self.reset()
+
         policy_stable = False
         iteration = 0
         changed = 0
@@ -387,18 +399,89 @@ class Map:
                     if old_policy != self.policy_map[xy]:
                         changed += 1
 
+    def value_iteration(self, method: str, gamma: float = 0.95, theta: float = 1e-8):
+        if method not in METHODS:
+            raise Exception(f"Invalid method chosen - must be one of: {METHODS}")
+
+        # Reset our maps prior to calculating
+        self.reset()
+        iteration = 0
+
+        delta = theta + 1
+        while delta > theta:
+            delta = 0
+            iteration += 1
+            print(
+                f"Iteration: {iteration}",
+                end="\r",
+                flush=True,
+            )
+
+            for y, row in enumerate(self.map):
+                for x, cell in enumerate(row):
+                    # Skip obstacles
+                    if cell == OBSTACLE:
+                        continue
+
+                    xy = (x, y)
+
+                    if xy == self.goal:
+                        continue
+
+                    old_value = self.value_map[xy]
+
+                    # Get our neighbors, the probability of choosing them
+                    # via our policy, and the rewards from each possible
+                    # neighbor
+                    neighbors = self.get_neighbors(xy)
+                    probability = self.generate_move_probabilities(xy, method)
+                    rewards = self.get_rewards(xy)
+
+                    # Calculate value by iterating over each and calculating
+                    # the new values
+                    value = -sys.maxsize
+                    for index, neighbor in enumerate(neighbors):
+                        # Ignore out of bounds neighbors - they don't exist
+                        # So therefore we do not update their value at all
+                        if self.is_out_of_bounds(neighbor):
+                            continue
+                        # You can't move to an obstacle state, so it has no value
+                        # but if you do choose to try you take the obstacle
+                        # penalty - therefore we do add its probability *
+                        # the penalty as part of the reward for this state given
+                        # our policy atm
+                        if self.is_obstacle(neighbor):
+                            value = max(value, probability[index] * rewards[index])
+                        else:
+                            value = max(
+                                value,
+                                probability[index]
+                                * (rewards[index] + gamma * self.value_map[neighbor]),
+                            )
+
+                    # Assign the new value
+                    self.value_map[xy] = value
+                    # See if our delta is the largest delta for this iteration
+                    delta = max(delta, abs(old_value - value))
+
 
 if __name__ == "__main__":
     map = Map()
 
-    map.draw().save("./imgs/map.png")
+    # map.draw().save("./imgs/map.png")
 
-    print("Policy iteration for determinstic policy:")
-    map.policy_iteration(DETERMINISTIC)
-    map.draw_value_map().save("./imgs/policy_iteration_value_map_deterministic.png")
-    map.draw_policy_map().save("./imgs/polciy_iteration_policy_map_deterministic.png")
+    # print("Policy iteration for determinstic policy:")
+    # map.policy_iteration(DETERMINISTIC)
+    # map.draw_value_map().save("./imgs/policy_iteration_value_map_deterministic.png")
+    # map.draw_policy_map().save("./imgs/polciy_iteration_policy_map_deterministic.png")
 
-    print("Policy iteration for stochastic policy:")
-    map.policy_iteration(STOCHASTIC)
-    map.draw_value_map().save("./imgs/policy_iteration_value_map_stochastic.png")
-    map.draw_policy_map().save("./imgs/polciy_iteration_policy_map_stochastic.png")
+    # print("Policy iteration for stochastic policy:")
+    # map.policy_iteration(STOCHASTIC)
+    # map.draw_value_map().save("./imgs/policy_iteration_value_map_stochastic.png")
+    # map.draw_policy_map().save("./imgs/polciy_iteration_policy_map_stochastic.png")
+
+    map.value_iteration(DETERMINISTIC)
+    map.draw_value_map().save("./imgs/value_iteration_value_map_deterministic.png")
+
+    map.value_iteration(STOCHASTIC)
+    map.draw_value_map().save("./imgs/value_iteration_value_map_stochastic.png")
