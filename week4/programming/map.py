@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
@@ -9,15 +10,17 @@ OBSTACLE = 1
 ROBOT = 2
 
 Direction = Tuple[int, int]
-U: Direction = (0, 1)
-UR: Direction = (1, 1)
+U: Direction = (0, -1)
+UR: Direction = (1, -1)
 R: Direction = (1, 0)
-DR: Direction = (1, -1)
-D: Direction = (0, -1)
-DL: Direction = (-1, -1)
+DR: Direction = (1, 1)
+D: Direction = (0, 1)
+DL: Direction = (-1, 1)
 L: Direction = (-1, 0)
-UL: Direction = (-1, 1)
+UL: Direction = (-1, -1)
 directions = [U, UR, R, DR, D, DL, L, UL]
+
+Coordinate = Tuple[int, int]
 
 GOAL = 100.0
 OBSTACLE_PENALTY = -50.0
@@ -29,6 +32,9 @@ class Map:
         self.goal = goal
         self.robot = robot
         self.__init_map__()
+
+        self.value_map = defaultdict(lambda: 0.0)
+        self.policy_map = defaultdict(lambda: [0.125] * 8)
 
     def __init_map__(self):
         self.map: List[List[int]] = []
@@ -47,7 +53,7 @@ class Map:
         return self.map[xy[1]][xy[0]]
 
     def shape(self) -> Tuple[int, int]:
-        return (len(self.map), len(self.map[0]))
+        return (len(self.map[0]), len(self.map))
 
     def print(self):
         for row in self.map:
@@ -61,10 +67,10 @@ class Map:
                 xy = (x, y)
                 if self.is_obstacle(xy):
                     print("---", end=" ")
-                elif self.goal == xy:
-                    print(self.values[xy], end=" ")
+                # if self.goal == xy:
+                #     print(str(int(GOAL)), end=" ")
                 else:
-                    print(round(self.values[xy], 1), end=" ")
+                    print(str(int(self.value_map[xy])).zfill(3), end=" ")
             print()
 
     def draw(self, pixels_per=10):
@@ -99,35 +105,43 @@ class Map:
         else:
             self.set_robot(xy)
 
-    def get_actions(self, xy: Tuple[int, int]) -> List[Direction]:
-        """
-        get_actions takes a given xy coordinate, then returns the
-        possible open actions available in the order relative to
-        xy clockwise:
-        812
-        7#3
-        654
-        """
-        actions = []
-        for direction in directions:
-            xy = self.robot
-            new_xy = tuple(np.add(np.array(xy), np.array(direction)))
-            # If it goes off the edge, ignore the action
-            if new_xy[0] < 0 or new_xy[0] >= len(self.map[0]):
-                continue
-            elif new_xy[1] < 0 or new_xy[1] >= len(self.map):
-                continue
+    # def get_actions(self, xy: Tuple[int, int]) -> List[Direction]:
+    #     """
+    #     get_actions takes a given xy coordinate, then returns the
+    #     possible open actions available in the order relative to
+    #     xy clockwise:
+    #     812
+    #     7#3
+    #     654
+    #     """
+    #     actions = []
+    #     for direction in directions:
+    #         new_xy = tuple(np.add(np.array(xy), np.array(direction)))
+    #         # If it goes off the edge, ignore the action
+    #         if new_xy[0] < 0 or new_xy[0] >= len(self.map[0]):
+    #             continue
+    #         elif new_xy[1] < 0 or new_xy[1] >= len(self.map):
+    #             continue
 
-            actions.append(direction)
+    #         actions.append(direction)
 
-        return actions
+    #     return actions
 
     def is_obstacle(self, xy: Tuple[int, int]) -> bool:
-        return self.map[xy[1]][xy[0]] == 1
+        if self.is_out_of_bounds(xy):
+            return False
+        else:
+            return self.map[xy[1]][xy[0]] == 1
 
-    def get_neighbors(
-        self, xy: Tuple[int, int]
-    ) -> Tuple[int, int, int, int, int, int, int, int]:
+    def is_out_of_bounds(self, xy: Tuple[int, int]) -> bool:
+        return (
+            xy[0] < 0
+            or xy[0] >= len(self.map[0])
+            or xy[1] < 0
+            or xy[1] >= len(self.map)
+        )
+
+    def get_neighbors(self, xy: Tuple[int, int]) -> List[Coordinate]:
         """
         get_neighbors takes a given xy coordinate, then returns the
         neighbors in order from top around clockwise:
@@ -136,12 +150,37 @@ class Map:
         654
         """
         neighbors = []
-        for direction in self.get_actions(xy):
+        for direction in directions:  # self.get_actions(xy):
             new_xy = tuple(np.add(np.array(xy), np.array(direction)))
             neighbors.append(new_xy)
         return neighbors
 
-    def generate_move_probabilities(
+    def get_rewards(self, xy: Tuple[int, int]) -> List[float]:
+        """
+        generate_rewards takes a given xy coordinate and returns the reward
+        of each adjacent move. Note that this is not the value, but rather
+        the raw reward of moving to that cell.
+
+        :returns List[float] - a list of rewards in our typical clockwise
+            order
+        """
+        neighbors = self.get_neighbors(xy)
+        rewards = []
+
+        # First we must calculate the resulting awards based on what we know for
+        # each neighbor
+        for neighbor in neighbors:
+            # First, is the neighbor the goal? If so, it's worth REWARD points
+            if neighbor == self.goal:
+                rewards.append(GOAL + MOVEMENT_PENALTY)
+            elif self.is_obstacle(neighbor):
+                rewards.append(OBSTACLE_PENALTY)
+            else:
+                rewards.append(MOVEMENT_PENALTY)
+
+        return rewards
+
+    def generate_move_probabilities_old(
         self, xy: Tuple[int, int]
     ) -> Dict[Direction, float]:
         """
@@ -157,19 +196,13 @@ class Map:
             2. 20% chance of choosing an adjacent (45 degree rotation) neighbor
                 instead.
         """
+        # Generate our neighbors
         neighbors = self.get_neighbors(xy)
-        rewards = []
 
-        # First we must calculate the resulting awards based on what we know for
-        # each neighbor
-        for neighbor in neighbors:
-            # First, is the neighbor the goal? If so, it's worth REWARD points
-            if neighbor == self.goal:
-                rewards.append(GOAL)
-            elif self.is_obstacle(neighbor):
-                rewards.append(OBSTACLE_PENALTY)
-            else:
-                rewards.append(self.values[neighbor] - MOVEMENT_PENALTY)
+        # Get our list of rewards per neighbor
+        rewards = self.get_rewards(xy)
+        values = [self.values[xy] for neighbor in neighbors]
+        rewards = np.add(rewards, values)
 
         # Now that we have the rewards for each possible neighbor, we will figure
         # out the probability of choosing each.
@@ -199,71 +232,128 @@ class Map:
 
         return probabilities
 
-    def generate_value_map(self, min_delta=1e-3):
+    def generate_move_probabilities(self, xy: Tuple[int, int]) -> List[float]:
         """
-        generate_value_map will iteratively generate the calculated
-            value of each non obstacle square given the starting
-            conditions/state. It finishes when a termination minimum
-            delta is hit
+        TODO - write me
         """
-        # values is our value map. It is a defaultdict of each xy
-        # coordinate and its corresponding calculated value. We use
-        # the default dict to set our default value to 0 appropriately.
-        self.values = defaultdict(lambda: 0.0)
-        # self.values[self.goal] = GOAL
+        # Generate our neighbors
+        neighbors = self.get_neighbors(xy)
 
-        max_delta = min_delta + 1
+        # Get our list of rewards per neighbor
+        values = [0.0] * len(neighbors)
+        for index, neighbor in enumerate(neighbors):
+            if self.is_out_of_bounds(neighbor):
+                values[index] = -sys.maxsize
+            elif self.is_obstacle(neighbor):
+                values[index] = OBSTACLE_PENALTY
+            elif neighbor == self.goal:
+                values[index] = GOAL
+            else:
+                # values[index] = MOVEMENT_PENALTY + self.value_map[neighbor]
+                values[index] = self.value_map[neighbor]
 
-        while max_delta > min_delta:
-            # Reset max delta
-            max_delta = 0.0
+        # Now that we have the rewards for each possible neighbor, we will figure
+        # out the probability of choosing each.
+        # To do this, first we find our highest score. This is possibly *all* of
+        # them if all optons are equal.
+        highest = [1 if value == max(values) else 0 for value in values]
+        # Probabilities is a map, where the default value is a set [0] the length
+        # of our neighbor count
+        probabilities = [1 / highest.count(1) * x for x in highest]
+
+        return probabilities
+
+    def policy_evaluation(self, gamma=0.95, theta=1e-3):
+        # First we calculate the value map for the given policy
+        delta = theta + 1
+        while delta > theta:
+            delta = 0
 
             for y, row in enumerate(self.map):
                 for x, cell in enumerate(row):
-                    xy = (x, y)
-                    current_value = self.values[xy]
-
-                    # Skip calculations on obstacles
-                    if self.is_obstacle(xy):
-                        # self.values[xy] = OBSTACLE_PENALTY
+                    # We ignore calculating for obstacle squares since
+                    # we can never be there
+                    if cell == OBSTACLE:
                         continue
 
-                    # Calculate our value given our current position.
-                    # To do this, we need our current value (somewhat
-                    # known), the values of each possible neighbor,
-                    # and
+                    xy = (x, y)
+
+                    if xy == self.goal:
+                        continue
+
+                    # Save old value
+                    old_value = self.value_map[xy]
+
+                    # Get our neighbors, the probability of choosing them
+                    # via our policy, and the rewards from each possible
+                    # neighbor
                     neighbors = self.get_neighbors(xy)
+                    probability = self.policy_map[xy]
+                    rewards = self.get_rewards(xy)
 
-                    # Calculate the given probability of moving to each
-                    # neighboring state based on our rules.
-                    probabilities = self.generate_move_probabilities(xy)
-
-                    # For each neighbor, multiply the value of all neighbors
-                    # against the calculated probabilities. This allows us to
-                    # do complicated multi-cell calcs like our 20% turn, or
-                    # other ones like "10% of going in reverse", etc
-                    neighbor_values = []
-                    for neighbor in neighbors:
-                        value = 0.0
-                        for index, cell_xy in enumerate(neighbors):
-                            value += (
-                                current_value
-                                + probabilities[neighbor][index] * self.values[cell_xy]
+                    # Calculate value by iterating over each and calculating
+                    # the new values
+                    value = 0.0
+                    for index, neighbor in enumerate(neighbors):
+                        # Ignore out of bounds neighbors - they don't exist
+                        # So therefore we do not update their value at all
+                        if self.is_out_of_bounds(neighbor):
+                            continue
+                        # You can't move to an obstacle state, so it has no value
+                        # but if you do choose to try you take the obstacle
+                        # penalty - therefore we do add its probability *
+                        # the penalty as part of the reward for this state given
+                        # our policy atm
+                        if self.is_obstacle(neighbor):
+                            value += probability[index] * rewards[index]
+                        else:
+                            value += probability[index] * (
+                                rewards[index] + gamma * self.value_map[neighbor]
                             )
-                        neighbor_values.append(value)
 
-                    # Our current reward value is the highest possible reward
-                    # choice of the calcultaed policy
-                    self.values[xy] = max(neighbor_values)
+                    # Assign the new value
+                    self.value_map[xy] = value
+                    # See if our delta is the largest delta for this iteration
+                    delta = max(delta, abs(old_value - value))
 
-                    # Assign the delta so that we can possibly escape later if
-                    # we are barely updating anymore
-                    delta = abs(self.values[xy] - max(neighbor_values))
-                    max_delta = max(max_delta, delta)
+    def policy_iteration(self, gamma=0.95, theta=1e-3):
+        # Now we update the polciy versus the value map we've calculated
+        policy_stable = False
+        iteration = 0
+        changed = 0
+
+        while not policy_stable:
+            iteration += 1
+            print(
+                f"Iteration: {iteration} - Changed Policies = {changed}",
+                # end="\r",
+                # flush=True,
+            )
+
+            changed = 0
+            policy_stable = True
+
+            # Update our value map with our current policy
+            self.policy_evaluation(gamma, theta)
+
+            # Now we do policy improvement
+            for y, row in enumerate(self.map):
+                for x, cell in enumerate(row):
+                    # Skip obstacles
+                    if cell == OBSTACLE:
+                        continue
+
+                    xy = (x, y)
+
+                    old_policy = self.policy_map[xy]
+                    self.policy_map[xy] = self.generate_move_probabilities(xy)
+                    policy_stable = policy_stable and old_policy == self.policy_map[xy]
+                    if old_policy != self.policy_map[xy]:
+                        changed += 1
 
             self.print_value_map()
-            raise "hey now"
 
 
 x = Map()
-x.generate_value_map()
+x.policy_iteration()
+x.print_value_map()
