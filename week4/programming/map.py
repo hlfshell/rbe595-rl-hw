@@ -1,6 +1,7 @@
 import colorsys
 import sys
 from collections import defaultdict
+from time import time
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -376,6 +377,7 @@ class Map:
 
         policy_stable = False
         iteration = 0
+        start_time = time()
         changed = 0
 
         while not policy_stable:
@@ -407,13 +409,98 @@ class Map:
                     if old_policy != self.policy_map[xy]:
                         changed += 1
 
-        print(iteration)
+        seconds_elapsed = time() - start_time
+        print()
+        print(
+            f"Policy iteration took {iteration-1} iterations @ {seconds_elapsed} seconds"
+        )
 
     def value_iteration(self, method: str, gamma: float = 0.95, theta: float = 1e-8):
         """
-        value_iteration - value iteration is an approach to policy iteration where we
+        value_iteration - value iteration we are not utilizing a policy map, merely
+            choosing the max of given values calculated for our ruleset for values
+            while iterating over our state map.
+        """
+        if method not in METHODS:
+            raise Exception(f"Invalid method chosen - must be one of: {METHODS}")
+
+        # Reset our maps prior to calculating
+        self.reset()
+        iteration = 0
+        start_time = time()
+
+        delta = theta + 1
+        while delta > theta:
+            delta = 0
+            iteration += 1
+            print(
+                f"Iteration: {iteration}",
+                end="\r",
+                flush=True,
+            )
+
+            for y, row in enumerate(self.map):
+                for x, cell in enumerate(row):
+                    # Skip obstacles
+                    if cell == OBSTACLE:
+                        continue
+
+                    xy = (x, y)
+
+                    if xy == self.goal:
+                        continue
+
+                    old_value = self.value_map[xy]
+
+                    # Get our neighbors, the probability of choosing them
+                    # via our policy, and the rewards from each possible
+                    # neighbor
+                    neighbors = self.get_neighbors(xy)
+                    probability = self.generate_move_probabilities(xy, method)
+                    rewards = self.get_rewards(xy)
+
+                    # Calculate value by iterating over each and calculating
+                    # the new values
+                    value = -sys.maxsize
+                    for index, neighbor in enumerate(neighbors):
+                        # Ignore out of bounds neighbors - they don't exist
+                        # So therefore we do not update their value at all
+                        if self.is_out_of_bounds(neighbor):
+                            continue
+                        # You can't move to an obstacle state, so it has no value
+                        # but if you do choose to try you take the obstacle
+                        # penalty - therefore we do add its probability *
+                        # the penalty as part of the reward for this state given
+                        # our policy atm
+                        if self.is_obstacle(neighbor):
+                            value = max(value, probability[index] * rewards[index])
+                        else:
+                            value = max(
+                                value,
+                                probability[index]
+                                * (rewards[index] + gamma * self.value_map[neighbor]),
+                            )
+
+                    # Assign the new value
+                    self.value_map[xy] = value
+                    # See if our delta is the largest delta for this iteration
+                    delta = max(delta, abs(old_value - value))
+
+        seconds_elapsed = time() - start_time
+        print()
+        print(
+            f"Value iteration took {iteration - 1} iterations and {seconds_elapsed} seconds"
+        )
+
+    def generalized_policy_iteration(
+        self, method: str, gamma: float = 0.95, theta: float = 1e-8
+    ):
+        """
+        generalized_policy_iteration - gpi is an approach to policy iteration where we
             immediately halt policy evaluation after the first step. This approach
-            forces policy iteration to ultimately converge quicker.
+            forces policy iteration to ultimately converge quicker. We are alternating
+            immediately beteween evaluating our current position and reacting within the
+            environment we're exploring.
         """
         self.policy_iteration(method, gamma, theta, max_iterations=1)
 
@@ -440,3 +527,19 @@ if __name__ == "__main__":
     map.value_iteration(STOCHASTIC)
     map.draw_value_map().save("./imgs/value_iteration_value_map_stochastic.png")
     map.draw_policy_map().save("./imgs/value_iteration_policy_map_stochastic.png")
+
+    map.generalized_policy_iteration(DETERMINISTIC)
+    map.draw_value_map().save(
+        "./imgs/generalized_policy_iteration_value_map_deterministic.png"
+    )
+    map.draw_policy_map().save(
+        "./imgs/generalized_policy_iteration_policy_map_deterministic.png"
+    )
+
+    map.generalized_policy_iteration(STOCHASTIC)
+    map.draw_value_map().save(
+        "./imgs/generalized_policy_iteration_value_map_stochastic.png"
+    )
+    map.draw_policy_map().save(
+        "./imgs/generalized_policy_iteration_policy_map_stochastic.png"
+    )
