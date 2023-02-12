@@ -152,21 +152,37 @@ We can then express start wth $V_{n+1}$, and derive:
     V_{n+1} \dot{=} \frac{\sum_{k=1}^{n}W_k G_k}{\sum_{k=1}^{n} W_k}
 \end{equation}
 
-\begin{equation}
-    V_{n+1} = \frac{W_n G_n + \sum_{k=1}^{n-1}W_k G_k}{\sum_{k=1}^{n-1} W_k} \frac{\sum_{k=1}^{n-1}W_k}{\sum_{k=1}^{n-1} W_k}
-\end{equation}
-
-...the right-most component cancels at this point to 1, leaving us with:
+...here we pull out the last term, adjusting our summations:
 
 \begin{equation}
-    V_{n+1} = \frac{W_n G_n + \sum_{k=1}^{n-1}W_k G_k}{\sum_{k=1}^{n-1} W_k}
+    V_{n+1} = \frac{W_n G_n + \sum_{k=1}^{n-1}W_k G_k}{\sum_{k=1}^{n} W_k}
 \end{equation}
 
-...then we can introduce $C_n$ as, again, it is the sum of our weights:
+...in the next step we multiply the equation by a factor that equals one to introduce $\sum_{k=1}^{n-1} W_k$ to our setup:
+
+\begin{equation}
+    V_{n+1} = \frac{W_n G_n + \sum_{k=1}^{n-1}W_k G_k}{\sum_{k=1}^{n} W_k} \frac{\sum_{k=1}^{n-1} W_k}{\sum_{k=1}^{n-1} W_k}
+\end{equation}
+
+...multiplying this through we find:
+
+\begin{equation}
+    V_{n+1} = \frac{W_n G_n + \sum_{k=1}^{n-1}W_k G_k}{\sum_{k=1}^{n-1} W_k} \frac{\sum_{k=1}^{n-1} W_k}{\sum_{k=1}^{n} W_k}
+\end{equation}
+
+...we can then separate the fraction and we find that we have found the definition of $V_n$ within our derivation, so simplify to that:
+
+\begin{equation}
+    V_{n+1} = \bigg(\frac{W_n G_n}{\sum_{k=1}^{n-1} W_k} + V_n \bigg) \frac{\sum_{k=1}^{n-1} W_k}{\sum_{k=1}^{n} W_k}
+\end{equation}
+
+...then we can introduce $C_n$ and $C_{n-1}$ as, again, they are the sum of our weights:
 
 \begin{equation}
     V_{n+1} = \bigg(\frac{W_n G_n}{C_{n-1}} + V_n \bigg) \frac{C_{n-1}}{C_n}
 \end{equation}
+
+...multiply through:
 
 \begin{equation}
     V_{n+1} = \frac{W_n G_n + V_n C_{n-1}}{C_n}
