@@ -1,5 +1,5 @@
 from collections import defaultdict
-from random import randint
+from random import randint, choice, random
 from typing import Dict, List, Tuple
 
 
@@ -56,11 +56,28 @@ class MonteCarloExploringStarts:
 
     def policy(self, state: int) -> int:
         """
-        Given a state, return the action U w/ the policy of
-        argmax(Q(St, a)) between the two possible acions of
-        -1 and 1
+        1. Given a state, return the action U w/ the policy of
+            argmax(Q(St, a)) between the two possible acions of
+            -1 and 1. On a tie, pick one at random.
+
+        2. There is an 80% chance that this choice is utilized.
+
+        3. There is a 15% chance that the robot returns a 0,
+            putting the robot in the same spot again.
+
+        4. There is a 5% chance that the robot will go the
+            opposite direction instead.
+
         """
-        return 1 if self.q[state, 1] > self.q[state, -1] else -1
+        right = (state, 1)
+        left = (state, -1)
+
+        if self.q[left] > self.q[right]:
+            return -1
+        elif self.q[left] < self.q[right]:
+            return 1
+        else:
+            return choice([-1, 1])
 
     def episode(self, gamma: float = 0.95):
         """
@@ -75,10 +92,25 @@ class MonteCarloExploringStarts:
 
         while not terminal:
             state = self.map.robot
+
             states.append(state)
 
             action = self.policy(self.map.robot)
-            reward, _, terminal = self.map.take_action(action)
+
+            # Determine if the robot will listen to our action
+            # or do someting else.
+            if 0.8 >= random():
+                performed_action = action
+
+            # We are now split between other other two options
+            # Remaining percentages given their ratios are 75%
+            # and 25% as opposed to the original 15% and 5%
+            elif 0.75 >= random():
+                performed_action = 0
+            else:
+                performed_action = -1 * action
+
+            reward, _, terminal = self.map.take_action(performed_action)
 
             actions.append(action)
             rewards.append(reward)
@@ -90,8 +122,9 @@ class MonteCarloExploringStarts:
         # skipping our terminal state. Note that if we started on
         # a terminal this is empty, so we just skip this
         G = 0
-        for index in range(len(states) - 1 - 1, 0 - 1, -1):
-            G = gamma * G + rewards[index + 1]
+
+        for index in range(len(states) - 1, 0 - 1, -1):
+            G = gamma * G + rewards[index]
 
             # If we do not see this state action pair earlier than
             # at this point, we can safely continue
@@ -113,6 +146,10 @@ class MonteCarloExploringStarts:
 if __name__ == "__main__":
     map = Map()
     agent = MonteCarloExploringStarts(map)
-    agent.run(100)
-    print(len(agent.returns))
+    agent.run(10_000)
+    print("DONE")
+    for key in agent.returns.keys():
+        print(
+            f":{key} - {len(agent.returns[key])} - {sum(agent.returns[key])/len(agent.returns[key])}"
+        )
     print(agent.q)
