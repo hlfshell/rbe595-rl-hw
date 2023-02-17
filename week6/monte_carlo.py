@@ -2,6 +2,9 @@ from collections import defaultdict
 from random import randint, choice, random
 from typing import Dict, List, Tuple
 
+EXPLORING_START = 0
+FIRST_VISIT = 1
+
 
 class Map:
     """
@@ -48,25 +51,31 @@ class Map:
         return (reward, self.robot, terminal)
 
 
-class MonteCarloExploringStarts:
-    def __init__(self, map: Map):
+class MonteCarlo:
+    def __init__(self, map: Map, agent_type: int, epsilon=0.05):
         self.map = map
+        self.agent_type = agent_type
+        self.epsilon = epsilon
+
+        if self.agent_type not in [EXPLORING_START, FIRST_VISIT]:
+            raise Exception("Invalid agent type specified")
+
         self.returns: Dict[Tuple, List[float]] = defaultdict(lambda: [])
         self.q: Dict[Tuple, float] = defaultdict(lambda: 0.0)
 
     def policy(self, state: int) -> int:
+        if self.agent_type == EXPLORING_START:
+            return self.exploring_start_policy(state)
+        elif self.agent_type == FIRST_VISIT:
+            return self.first_visit_policy(state)
+        else:
+            raise Exception("Invalid agent type specified")
+
+    def exploring_start_policy(self, state: int) -> int:
         """
-        1. Given a state, return the action U w/ the policy of
+        Given a state, return the action U w/ the policy of
             argmax(Q(St, a)) between the two possible acions of
             -1 and 1. On a tie, pick one at random.
-
-        2. There is an 80% chance that this choice is utilized.
-
-        3. There is a 15% chance that the robot returns a 0,
-            putting the robot in the same spot again.
-
-        4. There is a 5% chance that the robot will go the
-            opposite direction instead.
 
         """
         right = (state, 1)
@@ -78,6 +87,35 @@ class MonteCarloExploringStarts:
             return 1
         else:
             return choice([-1, 1])
+
+    def first_visit_policy(self, state: int) -> int:
+        """
+        Given a state, return the action U w/ the policy of
+            argmax(Q(St, a)) between the two possible acions of
+            -1 and 1. On a tie, pick one at random.
+
+            Note that this agent has a given epsilon which is
+                taken into account - there is a chance the
+                policy will decide to explore rather than
+                take the max Q value.
+
+        :returns int - the direction to go
+        """
+        right = (state, 1)
+        left = (state, -1)
+
+        action = 0
+        if self.q[left] > self.q[right]:
+            action = -1
+        elif self.q[left] < self.q[right]:
+            action = 1
+        else:
+            action = choice([-1, 1])
+
+        if 1 - self.epsilon >= random():
+            return action
+        else:
+            return -1 * action
 
     def episode(self, gamma: float = 0.95):
         """
@@ -95,7 +133,7 @@ class MonteCarloExploringStarts:
 
             states.append(state)
 
-            action = self.policy(self.map.robot)
+            action = self.policy(state)
 
             # Determine if the robot will listen to our action
             # or do someting else.
@@ -119,8 +157,7 @@ class MonteCarloExploringStarts:
         # By this point we have reached a terminal state. Let us
         # begin calculating our G and adjusting our returns + q
         # We iterate over each state from terminal in reverse,
-        # skipping our terminal state. Note that if we started on
-        # a terminal this is empty, so we just skip this
+        # skipping our terminal state.
         G = 0
 
         for index in range(len(states) - 1, 0 - 1, -1):
@@ -145,8 +182,20 @@ class MonteCarloExploringStarts:
 
 if __name__ == "__main__":
     map = Map()
-    agent = MonteCarloExploringStarts(map)
-    agent.run(10_000)
+
+    print("EXPLORING STARTS")
+    agent = MonteCarlo(map, EXPLORING_START)
+    agent.run(10)
+    print("DONE")
+    for key in agent.returns.keys():
+        print(
+            f":{key} - {len(agent.returns[key])} - {sum(agent.returns[key])/len(agent.returns[key])}"
+        )
+    print(agent.q)
+
+    print("FIRST VISIT")
+    agent = MonteCarlo(map, FIRST_VISIT)
+    agent.run(10)
     print("DONE")
     for key in agent.returns.keys():
         print(
