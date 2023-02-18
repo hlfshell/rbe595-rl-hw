@@ -225,7 +225,7 @@ def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], filename: str)
 
 
 if __name__ == "__main__":
-    results = run_experiment(EXPLORING_START, 5_000, runs_per_episode=100)
+    results = run_experiment(EXPLORING_START, 500, runs_per_episode=100)
     build_plots(results, "./results_exploring_start.png")
-    results = run_experiment(FIRST_VISIT, 5_000, runs_per_episode=100)
+    results = run_experiment(FIRST_VISIT, 500, runs_per_episode=100)
     build_plots(results, "./results_first_visit.png")
