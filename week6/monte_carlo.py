@@ -1,6 +1,7 @@
 from collections import defaultdict
 from random import randint, choice, random
 from typing import Dict, List, Tuple
+from matplotlib import pyplot as plt
 
 EXPLORING_START = 0
 FIRST_VISIT = 1
@@ -180,25 +181,51 @@ class MonteCarlo:
             self.episode()
 
 
-if __name__ == "__main__":
+def run_experiment(agent_type: int, episodes_max: int, runs_per_episode: int):
     map = Map()
 
-    print("EXPLORING STARTS")
-    agent = MonteCarlo(map, EXPLORING_START)
-    agent.run(10)
-    print("DONE")
-    for key in agent.returns.keys():
-        print(
-            f":{key} - {len(agent.returns[key])} - {sum(agent.returns[key])/len(agent.returns[key])}"
-        )
-    print(agent.q)
+    # exploring_qs: Dict[int, Dict[Tuple[int, int], List[float]]] = defaultdict(
+    #     lambda: defaultdict(lambda: [])
+    # )
+    # results: List[Dict[int, Dict[Tuple[int, int], float]]] = []
+    exploring_avg_qs: Dict[int, Dict[Tuple[int, int], float]] = defaultdict(
+        lambda: defaultdict(lambda: 0.0)
+    )
 
-    print("FIRST VISIT")
-    agent = MonteCarlo(map, FIRST_VISIT)
-    agent.run(10)
-    print("DONE")
-    for key in agent.returns.keys():
-        print(
-            f":{key} - {len(agent.returns[key])} - {sum(agent.returns[key])/len(agent.returns[key])}"
-        )
-    print(agent.q)
+    for episodes in range(1, episodes_max + 1):
+        for _ in range(runs_per_episode):
+            agent = MonteCarlo(map, agent_type)
+            agent.run(episodes)
+            for key in agent.q.keys():
+                # exploring_qs[5000][key].append(agent.q[key])
+                exploring_avg_qs[episodes][key] += agent.q[key] / runs_per_episode
+
+    return exploring_avg_qs
+
+
+def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], filename: str):
+    # figure = plt.figure()
+    figure, axes = plt.subplots()
+    plt.xlabel("Episodes Ran")
+    plt.ylabel("Average Q Score")
+
+    episodes_axis = [i + 1 for i in range(len(results.keys()))]
+    for state_action in results[list(results.keys())[0]].keys():
+        scores: List[float] = [
+            results[episode][state_action] for episode in results.keys()
+        ]
+        plt.plot(episodes_axis, scores, label=str(state_action))
+
+    # plt.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
+    pos = axes.get_position()
+    axes.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+    axes.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
+
+    figure.savefig(filename)
+
+
+if __name__ == "__main__":
+    results = run_experiment(EXPLORING_START, 5_000, runs_per_episode=100)
+    build_plots(results, "./results_exploring_start.png")
+    results = run_experiment(FIRST_VISIT, 5_000, runs_per_episode=100)
+    build_plots(results, "./results_first_visit.png")
