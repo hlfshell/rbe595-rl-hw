@@ -184,10 +184,6 @@ class MonteCarlo:
 def run_experiment(agent_type: int, episodes_max: int, runs_per_episode: int):
     map = Map()
 
-    # exploring_qs: Dict[int, Dict[Tuple[int, int], List[float]]] = defaultdict(
-    #     lambda: defaultdict(lambda: [])
-    # )
-    # results: List[Dict[int, Dict[Tuple[int, int], float]]] = []
     exploring_avg_qs: Dict[int, Dict[Tuple[int, int], float]] = defaultdict(
         lambda: defaultdict(lambda: 0.0)
     )
@@ -197,14 +193,12 @@ def run_experiment(agent_type: int, episodes_max: int, runs_per_episode: int):
             agent = MonteCarlo(map, agent_type)
             agent.run(episodes)
             for key in agent.q.keys():
-                # exploring_qs[5000][key].append(agent.q[key])
                 exploring_avg_qs[episodes][key] += agent.q[key] / runs_per_episode
 
     return exploring_avg_qs
 
 
 def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], filename: str):
-    # figure = plt.figure()
     figure, axes = plt.subplots()
     plt.xlabel("Episodes Ran")
     plt.ylabel("Average Q Score")
@@ -216,7 +210,6 @@ def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], filename: str)
         ]
         plt.plot(episodes_axis, scores, label=str(state_action))
 
-    # plt.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
     pos = axes.get_position()
     axes.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
     axes.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
