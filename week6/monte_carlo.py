@@ -198,10 +198,11 @@ def run_experiment(agent_type: int, episodes_max: int, runs_per_episode: int):
     return exploring_avg_qs
 
 
-def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], filename: str):
+def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], file_prefix: str):
     figure, axes = plt.subplots()
     plt.xlabel("Episodes Ran")
     plt.ylabel("Average Q Score")
+    pos = axes.get_position()
 
     episodes_axis = [i + 1 for i in range(len(results.keys()))]
     for state_action in results[list(results.keys())[0]].keys():
@@ -210,15 +211,34 @@ def build_plots(results: Dict[int, Dict[Tuple[int, int], float]], filename: str)
         ]
         plt.plot(episodes_axis, scores, label=str(state_action))
 
-    pos = axes.get_position()
     axes.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
     axes.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
 
-    figure.savefig(filename)
+    figure.savefig(f"{file_prefix}_q.png")
+
+    figure, axes = plt.subplots()
+    plt.xlabel("Episodes Ran")
+    plt.ylabel("Average V(s)")
+    pos = axes.get_position()
+
+    for state in range(0, 4):
+        left = (state + 1, -1)
+        right = (state + 1, 1)
+
+        v_s: List[float] = [
+            max(results[episodes][left], results[episodes][right])
+            for episodes in results.keys()
+        ]
+        plt.plot(episodes_axis, v_s, label=str(state + 1))
+
+    axes.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+    axes.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
+
+    figure.savefig(f"{file_prefix}_v.png")
 
 
 if __name__ == "__main__":
     results = run_experiment(EXPLORING_START, 500, runs_per_episode=100)
-    build_plots(results, "./results_exploring_start.png")
+    build_plots(results, "./results_exploring_start")
     results = run_experiment(FIRST_VISIT, 500, runs_per_episode=100)
-    build_plots(results, "./results_first_visit.png")
+    build_plots(results, "./results_first_visit")
