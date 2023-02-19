@@ -44,6 +44,8 @@ Here we developed two Monte Carlo agents - an exploring starts agent and a first
     \caption{V(s) Avg for First Visit Monte Carlo Agent}
 \end{figure}
 
+Our convergence for exploring starts is chaotic as it sometimes "locks in" an incorrect approach; this is likely due to our enviroment. Exploring starts gets it exploration via random starts, but because of our small environment it quickly learns its policy and sticks to it. This means that, if in our initialization of all values we have relatively equal values for everything and thus true randomness at the start, we can learn and lock in a policy for exploring starts that is the exact opposite of true optimal. This can occur at first in first-visit, but because of the $\epsilon$-greedy approach for exploration this will be corrected over a long enough run of episodes. I suspect that, had we a larger or more complex environment, exploring starts would have had a better showing on convergence towards the expected optimal policy. Note that it is because of this variance of start for exploring start that led me to run 100 attempts per set of episodes to try and find a smoothed expectation from the agents.
+
 
 
 \end{document}
