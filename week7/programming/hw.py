@@ -1,11 +1,9 @@
-import colorsys
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from typing import Tuple, List, Dict
 from collections import defaultdict
 from random import random, choice
-import sys
 
 OPEN = 0
 CLIFF = 1
@@ -20,9 +18,9 @@ directions: List[Direction] = [U, R, D, L]
 
 Coordinate = Tuple[int, int]
 
-class Map:
 
-    def __init__(self, goal: Coordinate = (11, 3), robot: Coordinate= (0, 3)):
+class Map:
+    def __init__(self, goal: Coordinate = (11, 3), robot: Coordinate = (0, 3)):
         self.goal = goal
         self.robot = robot
         self.__init_map__()
@@ -37,7 +35,7 @@ class Map:
                     if char == "\n":
                         continue
                     self.map[index].append(int(char))
-    
+
     def get(self, xy: Coordinate) -> int:
         return self.map[xy[1]][xy[0]]
 
@@ -47,7 +45,7 @@ class Map:
     def set_robot(self, xy):
         self.robot = xy
 
-    def move_robot(self, direction: Direction) ->  Tuple[int, Coordinate, bool]:
+    def move_robot(self, direction: Direction) -> Tuple[int, Coordinate, bool]:
         xy = tuple(np.add(np.array(self.robot), np.array(direction)))
         if self.is_out_of_bounds(xy):
             raise Exception("Illegal move - out of bounds")
@@ -60,7 +58,6 @@ class Map:
                 return (-100, self.robot, True)
             else:
                 return (-1, self.robot, False)
-            
 
     def is_cliff(self, xy: Coordinate) -> bool:
         if self.is_out_of_bounds(xy):
@@ -75,7 +72,7 @@ class Map:
             or xy[1] < 0
             or xy[1] >= len(self.map)
         )
-    
+
     def get_neighbors(self, xy: Coordinate) -> Tuple[List[Coordinate], List[Direction]]:
         """
         get_neighbors takes a given xy coordinate, then returns the
@@ -101,7 +98,7 @@ class Map:
             for col in row:
                 print(col, end="")
             print()
-    
+
     def draw(self, pixels_per=25):
         w, h = self.shape()
         img = Image.new("RGB", (w * pixels_per, h * pixels_per))
@@ -126,8 +123,7 @@ class Map:
 
 
 class Agent:
-
-    def __init__(self, alpha: float = 0.10, gamma: float = 0.95, epsilon = 0.05):
+    def __init__(self, alpha: float = 0.10, gamma: float = 0.95, epsilon=0.05):
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.epsilon: float = epsilon
@@ -138,12 +134,12 @@ class Agent:
 
     def reset_map(self):
         self.map = Map()
-    
+
     def policy(self, state: Coordinate) -> Direction:
         """
         Policy is an argmax epsilon-greedy function. Given a state, compare all available
         directions and expected Q values for them, then select the action with the highest
-        Q-score. This is an epsilon-greedy approach, so we do this at a probability of 
+        Q-score. This is an epsilon-greedy approach, so we do this at a probability of
         1-epsilon. If it doesn't, then we just choose a random action instead.
 
         If multiple neighbors have equivalent value, then we choose randomly amongst them.
@@ -154,7 +150,7 @@ class Agent:
 
         # Then we determine if we're going to be choosing a random direction or
         # using our greedy approach of max Q value
-        if random() > 1-self.epsilon:
+        if random() > 1 - self.epsilon:
             return choice(actions)
         else:
             q_scores = [self.q[(state, direction)] for direction in actions]
@@ -164,9 +160,9 @@ class Agent:
             # Limit directions to all values equivalent to the max Q score
             q_scores.reverse()
             last_index = len(q_scores) - q_scores.index(max_q_score)
-            actions = actions[0:last_index+1]
+            actions = actions[0 : last_index + 1]
             return choice(actions)
-    
+
     def episode(self):
         """
         Run through one episode and update according to the chosen algorithm
@@ -176,7 +172,7 @@ class Agent:
         state_action_pairs: List[Tuple[Coordinate, Direction]] = []
         rewards: List[int] = []
 
-        terminal  = False
+        terminal = False
         while not terminal:
             state = self.map.robot
             states.append(state)
@@ -193,10 +189,12 @@ class Agent:
             next_action = self.policy(next_state)
             next_state_action_pair = (next_state, next_action)
 
-            self.q[state_action_pair] = self.q[state_action_pair] + \
-                self.alpha * (reward + self.gamma*self.q[next_state_action_pair] - \
-                    self.q[state_action_pair])
-    
+            self.q[state_action_pair] = self.q[state_action_pair] + self.alpha * (
+                reward
+                + self.gamma * self.q[next_state_action_pair]
+                - self.q[state_action_pair]
+            )
+
     def run(self, episodes: int):
         """
         Perform a run of several episodes, allowing the agent to learn
