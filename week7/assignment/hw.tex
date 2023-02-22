@@ -27,33 +27,37 @@ Both dynamic programming (DP) and temporal difference (TD) utilize bootstrapping
 
 \subsection*{Monte-Carlo}
 
-??? None?
+The target value update for Monte-Carlo is simply:
+
+\begin{equation}
+    G_t
+\end{equation}
 
 \subsection*{Q-Learning}
 
 The target value for a state/action pair is the max of the expected future reward obtained when taking the best possible action available in the next state. It utilizes the Bellman equation:
 
 \begin{equation}
-    Q(s,a) = Q(sa,) + \alpha \biggl( R + \gamma * \max\bigl(Q(s',a')\bigr) - Q(s'a) \biggr)
+    \biggl( R_{t+1} + \gamma * \max\bigl(Q(s',a')\bigr) - Q(s'a) \biggr)
 \end{equation}
 
 \subsection*{SARSA}
 
-In SARSA (state, action, reward, state, action...) the target value of a given state/action pair is the estimated future rewards obtained by following the current policy. SARSA updates with the equation:
+In SARSA (state, action, reward, state, action...) the target value of a given state/action pair is the estimated future rewards obtained by following the current policy. SARSA's target value update is:
 
 \begin{equation}
-    Q(s,a) = Q(s,a) + \alpha \biggl( R + \gamma Q(s',a') - Q(s,a) \biggr)
+    \biggl( R_{t+1} + \gamma Q(s',a') - Q(s,a) \biggr)
 \end{equation}
 
 \subsection*{Expected SARSA}
 
-In expected SARSA, teh target value of a given action/pair is the expected rewards  obtained by following the current policy, but also updates the Q-value for a given state/pair pair with the equation:
+In expected SARSA, teh target value of a given action/pair is the expected rewards  obtained by following the current policy, but also updates the Q-value for a given state/pair pair with the target value update:
 
 \begin{equation}
-    Q(s,a) = Q(s,a) + \alpha \biggl( R + \gamma \sum\bigl( p * Q(s',a') \bigr) - Q(s,a)  \biggr)
+    \biggl( R_{t+1} + \gamma \sum_a \bigl( \pi * Q(s',a') \bigr) - Q(s,a)  \biggr)
 \end{equation}
 
-\noindent ...with notable newcomer $p$ being equal to the probability of taking a given action.
+\noindent ...with notable newcomer $\pi$ being our policy (probability of choosing a specific action). Thus we are summing the probability of all possible choices times the expected Q value.
 
 
 \section*{Problem 3}
