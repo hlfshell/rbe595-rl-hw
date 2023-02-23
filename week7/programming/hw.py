@@ -1,9 +1,9 @@
+from collections import defaultdict
+from random import choice, random
+from typing import Dict, List, Tuple
+
 import numpy as np
 from PIL import Image, ImageDraw
-
-from typing import Tuple, List, Dict
-from collections import defaultdict
-from random import random, choice
 
 OPEN = 0
 CLIFF = 1
@@ -155,12 +155,11 @@ class Agent:
         else:
             q_scores = [self.q[(state, direction)] for direction in actions]
             q_scores.sort(reverse=True)
-            actions.sort(key=lambda direction: self.q[(state, direction)], reverse=True)
             max_q_score = q_scores[0]
             # Limit directions to all values equivalent to the max Q score
-            q_scores.reverse()
-            last_index = len(q_scores) - q_scores.index(max_q_score)
-            actions = actions[0 : last_index + 1]
+            actions = [
+                action for action in actions if self.q[(state, action)] == max_q_score
+            ]
             return choice(actions)
 
     def episode(self):
@@ -208,8 +207,8 @@ class Agent:
 
         arrows = defaultdict(lambda: Image())
         arrow = Image.open("./arrow.png")
-        for index, direction in enumerate(directions):
-            arrows[direction] = arrow.rotate(-90 * index)
+        for index, action in enumerate(directions):
+            arrows[action] = arrow.rotate(-90 * index)
 
         for y, row in enumerate(self.map.map):
             for x, cell in enumerate(row):
@@ -221,10 +220,14 @@ class Agent:
 
                 # Define the direction we go from here by finding the max
                 # of the policy currently assigned
-                direction = self.policy(xy)
-                arrow = arrows[direction]
+                _, actions = self.map.get_neighbors(xy)
+                actions.sort(
+                    key=lambda direction: self.q[(xy, direction)], reverse=True
+                )
+                action = actions[0]
+
+                arrow = arrows[action]
                 upper_left = (x * pixels_per, y * pixels_per)
-                # bottom_right = (upper_left[0] + pixels_per, upper_left[1] + pixels_per)
                 img.paste(arrow, upper_left)
 
         return img
@@ -232,7 +235,6 @@ class Agent:
 
 if __name__ == "__main__":
     agent = Agent()
-    agent.run(1_000)
-    map = agent.draw_policy_map()
-    map.save("./tmp.png")
-    # print(agent.q)
+    agent.run(10)
+    # map = agent.draw_policy_map()
+    # map.save("./sarasa_10.png")
