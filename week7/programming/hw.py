@@ -3,11 +3,15 @@ from random import choice, random
 from typing import Dict, List, Tuple
 
 import numpy as np
+from matplotlib import pyplot as plt
 from PIL import Image, ImageDraw
 
 OPEN = 0
 CLIFF = 1
 ROBOT = 2
+
+SARSA = 0
+QLEARNING = 1
 
 Direction = Tuple[int, int]
 U: Direction = (0, -1)
@@ -123,7 +127,10 @@ class Map:
 
 
 class Agent:
-    def __init__(self, alpha: float = 0.10, gamma: float = 0.95, epsilon=0.05):
+    def __init__(
+        self, type: int, alpha: float = 0.10, gamma: float = 0.95, epsilon=0.05
+    ):
+        self.type = type
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.epsilon: float = epsilon
@@ -135,9 +142,24 @@ class Agent:
     def reset_map(self):
         self.map = Map()
 
+    def qmax_action(self, state: Coordinate) -> Direction:
+        """
+        qmax_action will return the highest scored action from a given state, with ties
+        being randomly chosen from amongst them. There is no randomness beyond this.
+        """
+        _, actions = self.map.get_neighbors(state)
+        q_scores = [self.q[(state, direction)] for direction in actions]
+        q_scores.sort(reverse=True)
+        max_q_score = q_scores[0]
+        # Limit directions to all values equivalent to the max Q score
+        actions = [
+            action for action in actions if self.q[(state, action)] == max_q_score
+        ]
+        return choice(actions)
+
     def policy(self, state: Coordinate) -> Direction:
         """
-        Policy is an argmax epsilon-greedy function. Given a state, compare all available
+        policy is an argmax epsilon-greedy function. Given a state, compare all available
         directions and expected Q values for them, then select the action with the highest
         Q-score. This is an epsilon-greedy approach, so we do this at a probability of
         1-epsilon. If it doesn't, then we just choose a random action instead.
@@ -153,40 +175,45 @@ class Agent:
         if random() > 1 - self.epsilon:
             return choice(actions)
         else:
-            q_scores = [self.q[(state, direction)] for direction in actions]
-            q_scores.sort(reverse=True)
-            max_q_score = q_scores[0]
-            # Limit directions to all values equivalent to the max Q score
-            actions = [
-                action for action in actions if self.q[(state, action)] == max_q_score
-            ]
-            return choice(actions)
+            return self.qmax_action(state)
 
-    def episode(self):
+    def episode(self) -> float:
         """
-        Run through one episode and update according to the chosen algorithm
+        Run through one episode and update according to the chosen algorithm.
+        Return the final reward of the episode.
         """
         states: List[Coordinate] = []
         actions: List[Direction] = []
-        state_action_pairs: List[Tuple[Coordinate, Direction]] = []
         rewards: List[int] = []
+        total_reward: float = 0.0
 
         terminal = False
+        state = self.map.robot
+
+        action = self.policy(state)
         while not terminal:
             state = self.map.robot
             states.append(state)
-            action = self.policy(state)
+
+            if self.type == QLEARNING:
+                action = self.policy(state)
 
             reward, _, terminal = self.map.move_robot(action)
 
+            total_reward += reward
             actions.append(action)
             rewards.append(reward)
             state_action_pair = (state, action)
-            state_action_pairs.append(state_action_pairs)
 
             next_state = self.map.robot
-            next_action = self.policy(next_state)
+            if self.type == SARSA:
+                next_action = self.policy(next_state)
+            else:
+                next_action = self.qmax_action(next_state)
             next_state_action_pair = (next_state, next_action)
+
+            if self.type == SARSA:
+                action = next_action
 
             self.q[state_action_pair] = self.q[state_action_pair] + self.alpha * (
                 reward
@@ -194,13 +221,23 @@ class Agent:
                 - self.q[state_action_pair]
             )
 
-    def run(self, episodes: int):
+        return total_reward
+
+    def run(self, episodes: int) -> List[float]:
         """
         Perform a run of several episodes, allowing the agent to learn
+        Returns a list of all rewards collected during the episodes.
         """
+        rewards: List[float] = []
         for i in range(episodes):
+            print(i + 1, end="\r", flush=True)
             self.reset_map()
-            self.episode()
+            reward = self.episode()
+            rewards.append(reward)
+
+        print("")
+
+        return rewards
 
     def draw_policy_map(self, pixels_per=25):
         img = self.map.draw(pixels_per=pixels_per)
@@ -218,13 +255,7 @@ class Agent:
                 elif cell == CLIFF:
                     continue
 
-                # Define the direction we go from here by finding the max
-                # of the policy currently assigned
-                _, actions = self.map.get_neighbors(xy)
-                actions.sort(
-                    key=lambda direction: self.q[(xy, direction)], reverse=True
-                )
-                action = actions[0]
+                action = self.qmax_action(xy)
 
                 arrow = arrows[action]
                 upper_left = (x * pixels_per, y * pixels_per)
@@ -234,7 +265,45 @@ class Agent:
 
 
 if __name__ == "__main__":
-    agent = Agent()
-    agent.run(10)
-    # map = agent.draw_policy_map()
-    # map.save("./sarasa_10.png")
+    episodes = 10_000
+
+    print("Running SARSA Agent")
+    agent = Agent(SARSA, alpha=0.1, epsilon=0.05)
+    sarsa_rewards = agent.run(episodes)
+    map = agent.draw_policy_map()
+    map.save("./imgs/sarsa.png")
+
+    print("Running Q-Learning Agent")
+    agent = Agent(QLEARNING, alpha=0.1, epsilon=0.05)
+    qlearning_rewards = agent.run(episodes)
+    map = agent.draw_policy_map()
+    map.save("./imgs/qlearning.png")
+
+    figure = plt.figure()
+    episodes_axis = [i + 1 for i in range(episodes)]
+
+    plt.plot(episodes_axis, sarsa_rewards)
+    figure.savefig("imgs/sarsa_rewards.png")
+
+    figure = plt.figure()
+
+    plt.plot(episodes_axis, qlearning_rewards)
+    figure.savefig("imgs/q_learning_rewards.png")
+
+    print("Running Epsilon tests")
+    # Run for lowering epsilons
+    for epsilon in np.arange(0.05, 0.0 - 0.01, -0.01):
+        epsilon = round(epsilon, 2)
+        print(f"Epsilon = {epsilon}")
+
+        print("Running SARSA Agent")
+        agent = Agent(SARSA, alpha=0.1, epsilon=epsilon)
+        agent.run(episodes)
+        map = agent.draw_policy_map()
+        map.save(f"./imgs/sarsa_epsilon_{epsilon}.png")
+
+        print("Running Q-Learning Agent")
+        agent = Agent(QLEARNING, alpha=0.1, epsilon=epsilon)
+        agent.run(episodes)
+        map = agent.draw_policy_map()
+        map.save(f"./imgs/qlearning_epsilon_{epsilon}.png")
