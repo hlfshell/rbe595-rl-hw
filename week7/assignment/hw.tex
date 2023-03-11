@@ -38,7 +38,7 @@ The target value update for Monte-Carlo is simply:
 The target value for a state/action pair is the max of the expected future reward obtained when taking the best possible action available in the next state. It utilizes the Bellman equation:
 
 \begin{equation}
-    \biggl( R_{t+1} + \gamma * \max\bigl(Q(s',a')\bigr) - Q(s'a) \biggr)
+    \biggl( R_{t+1} + \gamma * \max\bigl(Q(s',a')\bigr)\biggr)
 \end{equation}
 
 \subsection*{SARSA}
@@ -46,7 +46,7 @@ The target value for a state/action pair is the max of the expected future rewar
 In SARSA (state, action, reward, state, action...) the target value of a given state/action pair is the estimated future rewards obtained by following the current policy. SARSA's target value update is:
 
 \begin{equation}
-    \biggl( R_{t+1} + \gamma Q(s',a') - Q(s,a) \biggr)
+    \biggl( R_{t+1} + \gamma Q(s',a')\biggr)
 \end{equation}
 
 \subsection*{Expected SARSA}
@@ -54,7 +54,7 @@ In SARSA (state, action, reward, state, action...) the target value of a given s
 In expected SARSA, teh target value of a given action/pair is the expected rewards  obtained by following the current policy, but also updates the Q-value for a given state/pair pair with the target value update:
 
 \begin{equation}
-    \biggl( R_{t+1} + \gamma \sum_a \bigl( \pi * Q(s',a') \bigr) - Q(s,a)  \biggr)
+    \biggl( R_{t+1} + \gamma \sum_a \bigl( \pi * Q(s',a') \bigr) \biggr)
 \end{equation}
 
 \noindent ...with notable newcomer $\pi$ being our policy (probability of choosing a specific action). Thus we are summing the probability of all possible choices times the expected Q value.
@@ -70,7 +70,7 @@ Both TD and MC are model-free approaches - they do not need an exact representat
 
 First we take the TD update equation for the state value function for $V(x)$:
 \begin{equation}
-V(x) \leftarrow V(x) + \alpha \biggl[ R_{t+1} + \gamma V(S_{t+1}) - V(x) \biggr]
+    V(x) \leftarrow V(x) + \alpha \biggl[ R_{t+1} + \gamma V(S_{t+1}) - V(x) \biggr]
 \end{equation}
 
 ...we can plug in the values provided within our problem and begin calculating. Note that $V(S_{t+1})= V(y) = 1$:
@@ -97,7 +97,7 @@ We can then perform a similar path for $V(y)$.
 ... here $V(S_{t+1}) = V(y) = 5$:
 
 \begin{equation}
-    V(y) \leftarrow 1 + 0.1 \biggl[ 0 + 0.9 V(y) - 1 \biggr] = 1 + 0.1 \biggl[0 + 0.9 \cdot 5 - 1 \biggr] 
+    V(y) \leftarrow 1 + 0.1 \biggl[ 0 + 0.9 V(y) - 1 \biggr] = 1 + 0.1 \biggl[0 + 0.9 \cdot 5 - 1 \biggr]
 \end{equation}
 
 ...calculating through:
@@ -133,10 +133,10 @@ Double Q-Learning is a modification of the original Q-learning approach aiming t
 
 \begin{equation}
     Q_1(S_t, A_t) = Q_1(S_t, A_t) + \alpha \biggl[ R_{t+1} + \gamma Q_2 \bigl( S_{t+1}, \max Q_1(S_{t+1}, a) \bigr) - Q_1(S_t, A_t) \biggr]
-    \end{equation}
-    
+\end{equation}
+
 \begin{equation}
-Q_2(S_t, A_t) = Q_2(S_t, A_t) + \alpha \biggl[ R_{t+1} + \gamma Q_1 \bigl( S_{t+1}, \max Q_2(S_{t+1}, a) \bigr) - Q_2(S_t, A_t) \biggr]
+    Q_2(S_t, A_t) = Q_2(S_t, A_t) + \alpha \biggl[ R_{t+1} + \gamma Q_1 \bigl( S_{t+1}, \max Q_2(S_{t+1}, a) \bigr) - Q_2(S_t, A_t) \biggr]
 \end{equation}
 
 When we update these values, one set of Q-values is used to select the next action and the other is used to estimate its value. Since this reduces the overestimation bias in the estimate of the action, performance of the function improves overall.
