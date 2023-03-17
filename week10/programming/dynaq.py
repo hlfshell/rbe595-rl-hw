@@ -285,6 +285,7 @@ if __name__ == "__main__":
             agent = DynaQ(planning_steps=planning_steps)
             agent.run(episodes)
             steps[planning_steps].append(agent.steps_to_solve())
+        agent.draw_policy_map().save(f"./imgs/{planning_steps}_policy_map.png")
 
     figure, axes = plt.subplots()
     pos = axes.get_position()
