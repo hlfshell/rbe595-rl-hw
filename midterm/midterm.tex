@@ -74,20 +74,25 @@ A random variable with high entropy means that the distribution/outcome is more 
 
 Answer:
 
-F - B and D.
+\textbf{F} - both \textbf{B} and \textbf{D}
 
-You can see the backup diagrams for each drawn in Figure 1
+You can see the backup diagrams for each drawn in Figure 1.
 
-FIGURE HERE
+\begin{figure}
+    \centering
+    \includegraphics[width=.8\linewidth]{imgs/midterm.backup.diagram.png}
+    \caption{Backup diagram for B and D}
+\end{figure}
 
-Reasoning:
+\textbf{Reasoning:}
 
 \begin{itemize}
     \item \textbf{A} - This is incorrect as it uses $q_*$ in place of $v_*$ in the backup equation.
     \item \textbf{B} - This directly computes the optimal state value via its greedy action of calculating the maximum of all actions and their resulting action values
     \item \textbf{C} - This is incorrect as it computes the expected value of the next state using the current state/action pair - it should use the next state/action pair $s',a$
-    \item \textbf{D} - It computes the optimal state value by first computing the expected value of the next state and then takes the maximum of all actions and their resulting state/action values
-    \item \textbf{E} - Since B and D are right, this is eliminated
+    \item \textbf{D} - The definition of $q_*(s,a)$ as taking the expected return of state $s$ with action $a$ and taking the optimal thereafter; therefore we can take the maximum of all actions \textbf{D} returns and get the Bellman Equation.
+    \item \textbf{E} -Since B and D is right, this is eliminated
+    \item \textbf{F} - B and D are correct, so we choose this.
 \end{itemize}
 
 \section*{Problem 3}
@@ -300,26 +305,33 @@ For $q'(s,\leftarrow)$ we use the $q_2(s,\leftarrow)$ calculation:
 
 \textit{Prove that introducing the control variates in equation (2) does not add any bias to the original return (i.e. equation (1)) in expectation.}
 
+
+We start with our original equation as instructed...
 \begin{equation}
     G_{t:h} = p_t(R_{t+1} + \gamma G_{t+1:h})
 \end{equation}
 
+...then add in the control variate.
 \begin{equation}
     G_{t:h} = p_t(R_{t+1}+\gamma G_{t+1:h}) + (1-p_t) V_{h-1} (S_t)
 \end{equation}
 
+We take the expected value of the probability of each element.
 \begin{equation}
     \mathbb{E}[G_{t:h}] = \mathbb{E}[p_t(R_{t+1} + \gamma G_{t+1:h})] + \mathbb{E}[(1-p_t) V_{h-1} (S_t)]
 \end{equation}
 
+We simplify by realizing that $p_t$ is the only bit dealing with probability and isolated the expected value to that piece.
 \begin{equation}
     \mathbb{E}[G_{t:h}] = \mathbb{E}[p_t(R_{t+1} + \gamma G_{t+1:h})] + (1-\mathbb{E}[p_t]) V_{h-1} (S_t)
 \end{equation}
 
+...using the law of total expectations, we can then make the following change, as $\mathbb{E}[p_t(R_{t+1} + \gamma G_{t+1:h})] = \mathbb{E}[\mathbb{E}[p_t(R_{t+1} + \gamma G_{t+1:h})|S_t, A_t]]$
 \begin{equation}
     \mathbb{E}[G_{t:h}] = \mathbb{E}[\mathbb{E}[p_t(R_{t+1} + \gamma G_{t+1:h})|S_t,A_t]] + (1-\mathbb{E}[p_t]) V_{h-1} (S_t)
 \end{equation}
 
+We can use the definition of expected value to convert the inner expectation of the first term to the expected value of the given expression conditioned on the state-action pair...
 \begin{equation}
     \mathbb{E}[G_{t:h}] = \mathbb{E}[\frac{\pi(A_t|S_t)}{b(A_t|S_t)}(R_{t+1} + \gamma \mathbb{E}[G_{t+1:h}|S_{t+1}])] + (1-\mathbb{E}[p_t]) V_{h-1} (S_t)
 \end{equation}
