@@ -74,7 +74,11 @@ A random variable with high entropy means that the distribution/outcome is more 
 
 Answer:
 
-F - B and D. Backup diagrams TODO
+F - B and D.
+
+You can see the backup diagrams for each drawn in Figure 1
+
+FIGURE HERE
 
 Reasoning:
 
@@ -90,7 +94,7 @@ Reasoning:
 
 \textit{Consider a vehicle with 4 actions (left,right,up, down). There’s no uncertainty in the outcome ofthe action (i.e. when left is commanded, the left state is achived). The actions that cause the vehicle outside the grid, leave the state unchanged. The reward for all transition is -1 except when the goal is reached where the reward is zero. Discount factor $\gamma = 1$}
 
-\textit{Figure 1 shows the name of the states and figure on the right shows the state-value $V(s)$, for each state under a uniform random policy}
+\textit{Figure 2 shows the name of the states and figure on the right shows the state-value $V(s)$, for each state under a uniform random policy}
 
 \begin{figure}
     \centering
@@ -149,7 +153,7 @@ Reasoning:
 
 \textit{Consider a discount factor $\gamma = 0.5$ and learning rate $\alpha=0.1$, and a reward transition of $r=1$}
 
-\subsection*{3.1}
+\subsection*{4.1}
 \textit{What is the target value as well as updated value of $q(s,\leftarrow)$ using SARSA algorithm if the action at $s'$ was the left action.}
 
 The update rule:
@@ -294,61 +298,7 @@ For $q'(s,\leftarrow)$ we use the $q_2(s,\leftarrow)$ calculation:
     G_{t:h} = p_t(R_{t+1}+\gamma G_{t+1:h}) + (1-p_t) V_{h-1} (S_t)
 \end{equation}
 
-\textit{Prove that introducing the control variates in equation (2) does not add anybias to the original return (i.e. equation (1)) in expectation.}
-
-
-To prove that introducing the control variates in equation (2) does not add any bias to the original return (i.e. equation (1)) in expectation, we need to show that the expected value of $G_{t:h}$ with control variates is equal to the expected value of $G_{t:h}$ without control variates.
-
-Let $E_{t:h}$ denote the expected value of $G_{t:h}$. Then, we have:
-
-\begin{equation}
-    E_{t:h} = E_{t}[p_t(R_{t+1}+\gamma E_{t+1:h}) + (1-p_t) V_{h-1}(S_t)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t R_{t+1}] + E_{t}[p_t \gamma E_{t+1:h}] + E_{t}[(1-p_t)V_{h-1}(S_t)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t R_{t+1}] + E_{t}[p_t \gamma E_{t+1:h}] + V_{h-1}(S_t) - E_{t}[p_t V_{h-1}(S_t)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t R_{t+1} + \gamma p_t E_{t+1:h}] + V_{h-1}(S_t) - E_{t}[p_t V_{h-1}(S_t)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}] + V_{h-1}(S_t) - E_{t}[p_t V_{h-1}(S_t)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}] + (1-p_t)V_{h-1}(S_t) + p_t V_{h-1}(S_t) - E_{t}[p_t V_{h-1}(S_t)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}] + p_t [V_{h-1}(S_t) - E_{t}[V_{h-1}(S_t)]]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}] + p_t [\sum_{a} \pi(a|S_t) Q_{h-1}(S_t, a) - \sum_{a} b(a|S_t) Q_{h-1}(S_t, a)]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}] + p_t [\sum_{a} \pi(a|S_t) - \sum_{a} b(a|S_t)] Q_{h-1}(S_t, a)
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}] + 0
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t(R_{t+1}+\gamma G_{t+1:h})]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t R_{t+1} + \gamma p_t E_{t+1:h}]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t G_{t:h}]
-\end{equation}
-\begin{equation}
-    = E_{t}[p_t(\frac{\pi(A_t|S_t)}{b(A_t|S_t)}) G_{t:h}]
-\end{equation}
-\begin{equation}
-    = E_{t}[\frac{\pi(A_t|S_t)}{b(A_t|S_t)} G_{t:h}]
-\end{equation}
-
-
-dd
+\textit{Prove that introducing the control variates in equation (2) does not add any bias to the original return (i.e. equation (1)) in expectation.}
 
 \begin{equation}
     G_{t:h} = p_t(R_{t+1} + \gamma G_{t+1:h})
@@ -382,7 +332,17 @@ dd
     \mathbb{E}[G_{t:h}] = \sum_{a_t}\pi(a_t|S_t)\sum_{r_{t+1},s_{t+1}}\frac{p(r_{t+1},s_{t+1}|S_t,a_t)}{b(a_t|S_t)}[r_{t+1} + \gamma \mathbb{E}[G_{t+1:h}|S_{t+1}]]
 \end{equation}
 
-The above equation shows that the expected value of the return with control variates is equal to the expected value of the return without control variates, since the last term is zero (as $p_t$ is the importance sampling ratio between target and behavior policy, and therefore the expected value of
+Here we see that the expected value of the return with control variates is equivalent to the expected value of the return without the control variates because our last term ends up going to zero. Because of this, we can expect $p_t$ to go to 1:
+
+\begin{equation}
+    \mathbb{E}[p_t] = \mathbb{E}\left[\frac{\pi(A_t|S_t)}{b(A_t|S_t)}\right]
+    = \sum_{a}\pi(a|S_t)\frac{\pi(a|S_t)}{b(a|S_t)}
+    = \sum_{a}\frac{\pi(a|S_t)^2}{b(a|S_t)}
+    = \mathbb{E}\left[\frac{\pi(A_t|S_t)^2}{b(A_t|S_t)}\right]
+    = 1
+\end{equation}
+
+...which shows that the introduction of a control variate did not introduce bias to the original expectation return.
 
 
 \section*{Problem 6}
@@ -451,9 +411,9 @@ Working backwards:
 \begin{itemize}
     \item \textbf{J} - $n=1$, $v=1$
     \item \textbf{G} - $n=2$, $v=2$
-    \item \textbf{F} - $n=4$, $v=1$
+    \item \textbf{F} - $n=4$, $v=0$
     \item \textbf{B} - $n=7$, $v=3$
-    \item \textbf{A} - $n=9$, $v=2$
+    \item \textbf{A} - $n=9$, $v=0$
 \end{itemize}
 
 \subsection*{7.5}
@@ -464,15 +424,89 @@ We would choose the "up" action moving into state \textbf{B} over \textbf{C} as 
 
 
 
-% \section*{Problem 8}
-% \textit{In this question we are comparing mean and variance of the estimate reward for on-policy and off-policy algorithms. Consider the on-policy scenario below where actions are taken under target policy $\pi$:}
+\section*{Problem 8}
+\textit{In this question we are comparing mean and variance of the estimate reward for on-policy and off-policy algorithms. Consider the on-policy scenario below where actions are taken under target policy $\pi$:}
 
-% \begin{tabular*}{| c | c | c |}
-%     \hline
-%     Action && Reward && Probability of action under policy $\pi$ \\
+\begin{center}
+    \begin{tabular}{ |c|c|c| }
+        \hline
+        Action        & Reward & Probability via $\pi$ \\
+        \hline
+        $\rightarrow$ & +10    & 0.9                   \\
+        \hline
+        $\leftarrow$  & +20    & 0.1                   \\
+        \hline
+    \end{tabular}
+\end{center}
 
-% \end{tabular*}
+\subsection*{8.1}
+
+\textit{What is the expected value (mean) of estimated reward?}
+
+The expected value of our estimated reward is the sum of the total rewards multiplied by the probability of each action. Thus:
+
+\begin{equation}
+    \sum \pi(a) * r_a
+\end{equation}
+
+\begin{equation}
+    (0.9 * 10) + (0.1* 20) = 11
+\end{equation}
+
+\subsection*{8.2}
+
+\textit{What is the variance of the estimate reward? Hint: use the equation $Var[X] = E[X^2] - E[X]^2$}
+
+\begin{equation}
+    E[X^2] = (0.9 * 10^2) + (0.1*20^2) = (0.9*100) + (0.1*400) = 130
+\end{equation}
+
+\begin{equation}
+    Var[X] = 130 - 11^2 = 130 - 121 = 9
+\end{equation}
+
+\subsection*{8.3}
+
+\textit{Now assume that there is a behavior policy that is taking actions with following distribution:}
+
+\begin{center}
+    \begin{tabular}{ |c|c|c|c| }
+        \hline
+        Action        & Reward & $\pi_t$ & $\pi_b$ \\
+        \hline
+        $\rightarrow$ & +10    & 0.9     & 0.5     \\
+        \hline
+        $\leftarrow$  & +20    & 0.1     & 0.5     \\
+        \hline
+    \end{tabular}
+\end{center}
+
+\textit{Assume that we don't know the distribution of the target policy and we only know the ratio $\frac{\pi}{b}$ (importance sampling ratio). Numerically calculate the expected reward assuming that the action are taken by the behavior policy.}
 
 
+\begin{equation}
+    (0.5 * 10) + (0.5* 20) = 15
+\end{equation}
+
+\subsection*{8.4}
+
+\textit{Calculate the variance of the expected reward?}
+
+Using $Var[X] = E[X^2] - E[X]^2$ again:
+
+\begin{equation}
+    E[X^2] = (0.4 * 10^2) + (0.1*20^2) = (0.5*100) + (0.5*400) = 250
+\end{equation}
+
+\begin{equation}
+    Var[X] = 250 - 15^2 = 250 - 225 = 25
+\end{equation}
+
+\subsection*{8.5}
+
+\textit{What is the intuition behind higher variance in off-policy in this example? Can you explain how the importance sampling could increase the variance in off-policy learning?}
+
+
+In off-policy learning, the behavior policy is used to generate samples for its exploration and the target policy is derived from those samples. The behavior policy may as a result take actions that the target policy would not, leading to our observed difference in the probability distributions of actions for the target and behavior policies. This difference in distribution can cause the importance sampling ratio to be high, leading to high variance in the estimates. On-policy learning (like our first example) has a lower variance as it is more likely to result in the same actions being chosen repeatedly - which would explain the higher probability of choosing a singular action.
 
 \end{document}
