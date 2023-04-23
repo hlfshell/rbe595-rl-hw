@@ -130,7 +130,7 @@ The answer is \textbf{B} - the actor-critic architecture will find a locally opt
 \section*{Problem 12}
 \textit{Assume that we are using the linear function approximation for the critic network and SoftMax policy with linear function approximation for the actor network. Write down the parameter update equations for the actor and the critic network (use on-line update equations similar to the algorithm in page 332)}
 
-\subsection{Actor Network Update}
+\subsection*{Actor Network Update}
 \begin{equation}
     \sigma = R + \gamma \hat{v} (S,w) - \hat{v} (S,w)
 \end{equation}
@@ -138,7 +138,7 @@ The answer is \textbf{B} - the actor-critic architecture will find a locally opt
     w_{t+1} = w_t + \alpha^w \sigma \nabla \hat{v} (S,w)
 \end{equation}
 
-\subsection{Critic Network Update}
+\subsection*{Critic Network Update}
 \begin{equation}
     \theta = \theta + \alpha^\theta \sigma \nabla \pi_\theta (A | S)
 \end{equation}
